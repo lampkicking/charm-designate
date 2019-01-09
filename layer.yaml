@@ -1,0 +1,36 @@
+"includes":
+- "layer:options"
+- "layer:basic"
+- "layer:openstack"
+- "layer:debug"
+- "interface:tls-certificates"
+- "layer:openstack-principle"
+- "interface:mysql-shared"
+- "interface:rabbitmq"
+- "interface:keystone"
+- "interface:hacluster"
+- "interface:openstack-ha"
+- "layer:tls-client"
+- "layer:openstack-api"
+- "interface:bind-rndc"
+- "interface:memcache"
+- "interface:designate"
+"options":
+  "basic":
+    "use_venv": !!bool "true"
+    "include_system_packages": !!bool "true"
+    "packages": []
+    "python_packages": []
+  "tls-client":
+    "ca_certificate_path": ""
+    "client_certificate_path": ""
+    "client_key_path": ""
+    "server_key_path": ""
+    "server_certificate_path": ""
+  "openstack-principle": {}
+  "openstack-api": {}
+  "debug": {}
+  "openstack": {}
+  "designate": {}
+"repo": "https://github.com/openstack/charm-designate"
+"is": "designate"
