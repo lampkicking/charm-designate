@@ -31,8 +31,6 @@
     "scope": "container"
   "dns-backend":
     "interface": "bind-rndc"
-  "coordinator-memcached":
-    "interface": "memcache"
 "provides":
   "dnsaas":
     "interface": "designate"
