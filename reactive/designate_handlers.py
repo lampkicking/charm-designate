@@ -33,7 +33,6 @@ COMPLETE_INTERFACE_STATES = [
     'shared-db.available',
     'identity-service.available',
     'amqp.available',
-    'coordinator-memcached.available',
 ]
 
 
@@ -72,6 +71,7 @@ def install_packages():
     reactive.remove_state('amqp.requested-access')
     reactive.remove_state('shared-db.setup')
     reactive.remove_state('base-config.rendered')
+    reactive.remove_state('full-config.rendered')
     reactive.remove_state('db.synched')
     reactive.remove_state('pool-manager-cache.synched')
 
@@ -166,6 +166,7 @@ def update_peers(cluster):
         instance.update_peers(cluster)
 
 
+@reactive.when_not('full-config.rendered')
 @reactive.when('db.synched')
 @reactive.when('pool-manager-cache.synched')
 @reactive.when(*COMPLETE_INTERFACE_STATES)
@@ -189,6 +190,7 @@ def configure_designate_full(*args):
                 _render_sink_configs(instance, args)
             instance.render_rndc_keys()
             instance.update_pools()
+            reactive.set_state('full-config.rendered')
         except subprocess.CalledProcessError as e:
             hookenv.log("ensure_api_responding() errored out: {}"
                         .format(str(e)),
