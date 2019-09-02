@@ -1,0 +1,49 @@
+"name": "designate"
+"summary": "Designate provides DNSaaS services for OpenStack"
+"maintainer": "OpenStack Charmers <openstack-charmers@lists.ubuntu.com>"
+"description": |
+  Designate provides DNSaaS services for OpenStack:
+  * REST API for domain/record management
+  * Multi-tenant
+  * Integrated with Keystone for authentication
+  * Framework in place to integrate with Nova and Neutron notifications
+  * Support for PowerDNS and Bind9 out of the box
+"tags":
+- "openstack"
+- "misc"
+- "dns"
+"series":
+- "xenial"
+- "bionic"
+- "cosmic"
+- "disco"
+- "trusty"
+"requires":
+  "certificates":
+    "interface": "tls-certificates"
+  "shared-db":
+    "interface": "mysql-shared"
+  "amqp":
+    "interface": "rabbitmq"
+  "identity-service":
+    "interface": "keystone"
+  "ha":
+    "interface": "hacluster"
+    "scope": "container"
+  "dns-backend":
+    "interface": "bind-rndc"
+  "coordinator-memcached":
+    "interface": "memcache"
+"provides":
+  "dnsaas":
+    "interface": "designate"
+  "nova-designate":
+    "interface": "nova-designate"
+"peers":
+  "cluster":
+    "interface": "openstack-ha"
+"extra-bindings":
+  "public": !!null ""
+  "admin": !!null ""
+  "internal": !!null ""
+"subordinate": !!bool "false"
