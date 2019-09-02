@@ -12,9 +12,11 @@
 - "interface:openstack-ha"
 - "layer:tls-client"
 - "layer:openstack-api"
+- "layer:leadership"
 - "interface:bind-rndc"
 - "interface:memcache"
 - "interface:designate"
+"exclude": [".travis.yml", "tests", "tox.ini", "test-requirements.txt"]
 "options":
   "basic":
     "use_venv": !!bool "true"
@@ -29,6 +31,7 @@
     "server_certificate_path": ""
   "openstack-principle": {}
   "openstack-api": {}
+  "leadership": {}
   "debug": {}
   "openstack": {}
   "designate": {}

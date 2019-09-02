@@ -65,7 +65,7 @@ class DesignateBasicDeployment(amulet_deployment.OpenStackAmuletDeployment):
            """
         this_service = {'name': 'designate'}
         other_services = [
-            {'name': 'percona-cluster', 'constraints': {'mem': '3072M'}},
+            self.get_percona_service_entry(),
             {'name': 'rabbitmq-server'},
             {'name': 'keystone'},
             {'name': 'memcached', 'location': 'cs:memcached'},
@@ -100,6 +100,7 @@ class DesignateBasicDeployment(amulet_deployment.OpenStackAmuletDeployment):
             'designate:dnsaas': 'neutron-api:external-dns',
             'neutron-api:identity-service': 'keystone:identity-service',
             'neutron-api:shared-db': 'percona-cluster:shared-db',
+            'neutron-api:amqp': 'rabbitmq-server:amqp',
         }
         super(DesignateBasicDeployment, self)._add_relations(relations)
 

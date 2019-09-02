@@ -31,7 +31,8 @@ class KeystoneRequires(RelationBase):
                       'ca_cert', 'ssl_cert', 'https_keystone',
                       'ssl_cert_admin', 'ssl_cert_internal',
                       'ssl_cert_public', 'ssl_key_admin', 'ssl_key_internal',
-                      'ssl_key_public', 'api_version', 'service_domain']
+                      'ssl_key_public', 'api_version', 'service_domain',
+                      'service_domain_id']
 
     @hook('{requires:keystone}-relation-joined')
     def joined(self):
@@ -119,7 +120,7 @@ class KeystoneRequires(RelationBase):
         return True
 
     def register_endpoints(self, service, region, public_url, internal_url,
-                           admin_url):
+                           admin_url, requested_roles=None):
         """
         Register this service with keystone
         """
@@ -130,6 +131,9 @@ class KeystoneRequires(RelationBase):
             'admin_url': admin_url,
             'region': region,
         }
+        if requested_roles:
+            relation_info.update(
+                {'requested_roles': ','.join(requested_roles)})
         self.set_local(**relation_info)
         self.set_remote(**relation_info)
 

@@ -1,14 +1,17 @@
 import os
 
+from pathlib import Path
 from subprocess import check_call
 
 from charms import layer
 from charms.reactive import hook
 from charms.reactive import set_state, remove_state
 from charms.reactive import when
+from charms.reactive import set_flag, clear_flag
+from charms.reactive import endpoint_from_flag
 from charms.reactive.helpers import data_changed
 
-from charmhelpers.core import hookenv
+from charmhelpers.core import hookenv, unitdata
 from charmhelpers.core.hookenv import log
 
 
@@ -25,6 +28,11 @@ def store_ca(tls):
         if ca_path:
             if changed or not os.path.exists(ca_path):
                 log('Writing CA certificate to {0}'.format(ca_path))
+                # ensure we have a newline at the end of the certificate.
+                # some things will blow up without one.
+                # See https://bugs.launchpad.net/charm-kubernetes-master/+bug/1828034
+                if not certificate_authority.endswith('\n'):
+                    certificate_authority += '\n'
                 _write_file(ca_path, certificate_authority)
                 set_state('tls_client.ca.written')
             set_state('tls_client.ca.saved')
@@ -79,6 +87,67 @@ def store_client(tls):
                 log('Writing client key to {0}'.format(key_path))
                 _write_file(key_path, client_key)
             set_state('tls_client.client.key.saved')
+
+
+@when('certificates.certs.changed')
+def update_certs():
+    tls = endpoint_from_flag('certificates.certs.changed')
+    certs_paths = unitdata.kv().get('layer.tls-client.cert-paths', {})
+    all_ready = True
+    any_changed = False
+    maps = {
+        'server': tls.server_certs_map,
+        'client': tls.client_certs_map,
+    }
+
+    if maps.get('client') == {}:
+        log(
+            'No client certs found using maps. Checking for global \
+            client certificates.',
+            'WARNING'
+        )
+        # Check for global certs,
+        # Backwards compatibility https://bugs.launchpad.net/charm-kubernetes-master/+bug/1825819
+        cert_pair = tls.get_client_cert()
+        if cert_pair is not None:
+            for client_name in certs_paths.get('client', {}).keys():
+                maps.get('client').update({
+                    client_name: cert_pair
+                })
+
+    for cert_type in ('server', 'client'):
+        for common_name, paths in certs_paths.get(cert_type, {}).items():
+            cert = maps[cert_type].get(common_name)
+            if not cert:
+                all_ready = False
+                continue
+            if not data_changed('layer.tls-client.'
+                                '{}.{}'.format(cert_type, common_name), cert):
+                continue
+
+            if type(cert) is not tuple:
+                if paths['crt']:
+                    Path(paths['crt']).write_text(cert.cert)
+                if paths['key']:
+                    Path(paths['key']).write_text(cert.key)
+            else:
+                Path(paths['crt']).write_text(cert[0])
+                Path(paths['key']).write_text(cert[1])
+
+            any_changed = True
+            # clear flags first to ensure they are re-triggered if left set
+            clear_flag('tls_client.{}.certs.changed'.format(cert_type))
+            clear_flag('tls_client.{}.cert.{}.changed'.format(cert_type,
+                                                              common_name))
+            set_flag('tls_client.{}.certs.changed'.format(cert_type))
+            set_flag('tls_client.{}.cert.{}.changed'.format(cert_type,
+                                                            common_name))
+    if all_ready:
+        set_flag('tls_client.certs.saved')
+    if any_changed:
+        clear_flag('tls_client.certs.changed')
+        set_flag('tls_client.certs.changed')
+    clear_flag('certificates.certs.changed')
 
 
 def install_ca(certificate_authority):

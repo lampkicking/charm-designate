@@ -19,6 +19,12 @@
       Openstack mostly defaults to using public endpoints for
       internal communication between services. If set to True this option
       will configure services to use internal endpoints where possible.
+  "ssl_ca":
+    "type": "string"
+    "default": !!null ""
+    "description": |
+      SSL CA to use with the certificate and key provided - this is only
+      required if you are providing a privately signed ssl_cert and ssl_key.
   "openstack-origin":
     "default": "distro"
     "type": "string"
@@ -189,12 +195,6 @@
     "default": !!null ""
     "description": |
       SSL key to use with certificate specified as ssl_cert.
-  "ssl_ca":
-    "type": "string"
-    "default": !!null ""
-    "description": |
-      SSL CA to use with the certificate and key provided - this is only
-      required if you are providing a privately signed ssl_cert and ssl_key.
   "dns-slaves":
     "type": "string"
     "default": !!null ""
@@ -259,10 +259,6 @@
     "description": |
       Format of floating IPv6 global records.
       (NOTE: This option is obsolete starting from OpenStack Mitaka release)
-  "enable-host-header":
-    "type": "boolean"
-    "default": !!bool "false"
-    "description": "Enables host request headers."
   "also-notifies":
     "type": "string"
     "default": !!null ""

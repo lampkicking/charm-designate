@@ -139,8 +139,8 @@ class CRM(dict):
             if first:
                 results = results + ' '
                 first = False
-            results = results + ('%s %s' % (prefix, d))
-
+            results = results + ('%s %s ' % (prefix, d))
+        results = results.rstrip()
         return results
 
     def clone(self, name, resource, description=None, **kwargs):
@@ -275,7 +275,7 @@ class CRM(dict):
         """
         specs = ' '.join(resources)
         if 'description' in kwargs:
-            specs = specs + (' description="' % kwargs['description'])
+            specs = specs + (' description=%s"' % kwargs['description'])
 
         for key in 'meta', 'params':
             if key not in kwargs:
@@ -285,8 +285,24 @@ class CRM(dict):
 
         self['groups'][name] = specs
 
+    def remove_deleted_resources(self):
+        """Work through the existing resources and remove any mention of ones
+           which have been marked for deletion."""
+        for res in self['delete_resources']:
+            for key in self.keys():
+                if key == 'delete_resources':
+                    continue
+                if isinstance(self[key], dict) and res in self[key].keys():
+                    del self[key][res]
+                elif isinstance(self[key], list) and res in self[key]:
+                    self[key].remove(res)
+                elif isinstance(self[key], tuple) and res in self[key]:
+                    self[key] = tuple(x for x in self[key] if x != res)
+
     def delete_resource(self, *resources):
-        """Deletes one or more objects/resources within Pacemaker.
+        """Specify objects/resources to be deleted from within Pacemaker. This
+           is not additive, the list of resources is set to exaclty what was
+           passed in.
 
         Parameters
         ----------
@@ -302,6 +318,33 @@ class CRM(dict):
         http://crmsh.github.io/man/#cmdhelp_configure_delete
         """
         self['delete_resources'] = resources
+        self.remove_deleted_resources()
+
+    def add_delete_resource(self, resource):
+        """Specify an object/resource to delete from within Pacemaker. It can
+           be called multiple times to add additional resources to the deletion
+           list.
+
+        Parameters
+        ----------
+        resources: str
+            the name or id of the specific resource to delete.
+
+        Returns
+        -------
+        None
+
+        See Also
+        --------
+        http://crmsh.github.io/man/#cmdhelp_configure_delete
+        """
+        if resource not in self['delete_resources']:
+            # NOTE(fnordahl): this unpleasant piece of code is regrettably
+            # necessary for Python3.4 (and trusty) compability see LP: #1814218
+            # and LP: #1813982
+            self['delete_resources'] = tuple(
+                self['delete_resources'] or ()) + (resource,)
+            self.remove_deleted_resources()
 
     def init_services(self, *resources):
         """Specifies that the service(s) is an init or upstart service.

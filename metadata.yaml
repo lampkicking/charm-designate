@@ -16,6 +16,7 @@
 - "xenial"
 - "bionic"
 - "cosmic"
+- "disco"
 - "trusty"
 "requires":
   "certificates":

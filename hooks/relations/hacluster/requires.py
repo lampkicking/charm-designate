@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import json
+import hashlib
 
 import relations.hacluster.common
 from charms.reactive import hook
@@ -114,6 +115,15 @@ class HAClusterRequires(RelationBase):
         self.bind_on(iface=iface, mcastport=mcastport)
         self.manage_resources(resources)
 
+    def delete_resource(self, resource_name):
+        resource_dict = self.get_local('resources')
+        if resource_dict:
+            resources = relations.hacluster.common.CRM(**resource_dict)
+        else:
+            resources = relations.hacluster.common.CRM()
+        resources.add_delete_resource(resource_name)
+        self.set_local(resources=resources)
+
     def add_vip(self, name, vip, iface=None, netmask=None):
         """Add a VirtualIP object for each user specified vip to self.resources
 
@@ -149,6 +159,19 @@ class HAClusterRequires(RelationBase):
 
         self.set_local(resources=resources)
 
+    def remove_vip(self, name, vip, iface=None):
+        """Remove a virtual IP
+
+        :param name: string - Name of service
+        :param vip: string - Virtual IP
+        :param iface: string - Network interface vip bound to
+        """
+        if iface:
+            nic_name = iface
+        else:
+            nic_name = hashlib.sha1(vip.encode('UTF-8')).hexdigest()[:7]
+        self.delete_resource('res_{}_{}_vip'.format(name, nic_name))
+
     def add_init_service(self, name, service, clone=True):
         """Add a InitService object for haproxy to self.resources
 
@@ -164,6 +187,17 @@ class HAClusterRequires(RelationBase):
         resources.add(
             relations.hacluster.common.InitService(name, service, clone))
         self.set_local(resources=resources)
+
+    def remove_init_service(self, name, service):
+        """Remove an init service
+
+        :param name: string - Name of service
+        :param service: string - Name of service used in init system
+        """
+        res_key = 'res_{}_{}'.format(
+            name.replace('-', '_'),
+            service.replace('-', '_'))
+        self.delete_resource(res_key)
 
     def add_dnsha(self, name, ip, fqdn, endpoint_type):
         """Add a DNS entry to self.resources
@@ -195,6 +229,18 @@ class HAClusterRequires(RelationBase):
                                 *sorted(dns_res_group_members))
 
         self.set_local(resources=resources)
+
+    def remove_dnsha(self, name, endpoint_type):
+        """Remove a DNS entry
+
+        :param name: string - Name of service
+        :param endpoint_type: string - Public, private, internal etc
+        :returns: None
+        """
+        res_key = 'res_{}_{}_hostname'.format(
+            self.service_name.replace('-', '_'),
+            self.endpoint_type)
+        self.delete_resource(res_key)
 
     def get_remote_all(self, key, default=None):
         """Return a list of all values presented by remote units for key"""

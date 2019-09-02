@@ -19,7 +19,10 @@ class CertificateRequest(dict):
 
     @property
     def unit_name(self):
-        return self._unit.unit_name
+        unit_name = self._unit.received_raw['unit_name']
+        if not unit_name:
+            unit_name = self._unit.unit_name.replace('/', '_')
+        return unit_name
 
     @property
     def cert_type(self):
@@ -42,22 +45,19 @@ class CertificateRequest(dict):
 
     @property
     def _publish_key(self):
-        unit_name = self._unit.unit_name.replace('/', '_')
         if self.cert_type == 'server':
-            return '{}.processed_requests'.format(unit_name)
+            return '{}.processed_requests'.format(self.unit_name)
         elif self.cert_type == 'client':
-            return '{}.processed_client_requests'.format(unit_name)
+            return '{}.processed_client_requests'.format(self.unit_name)
         raise ValueError('Unknown cert_type: {}'.format(self.cert_type))
 
     @property
     def _server_cert_key(self):
-        unit_name = self._unit.unit_name.replace('/', '_')
-        return '{}.server.cert'.format(unit_name)
+        return '{}.server.cert'.format(self.unit_name)
 
     @property
     def _server_key_key(self):
-        unit_name = self._unit.unit_name.replace('/', '_')
-        return '{}.server.key'.format(unit_name)
+        return '{}.server.key'.format(self.unit_name)
 
     @property
     def _is_top_level_server_cert(self):
@@ -87,7 +87,8 @@ class CertificateRequest(dict):
     @property
     def is_handled(self):
         has_cert = self.cert is not None
-        same_sans = not is_data_changed(self._key, self.sans)
+        same_sans = not is_data_changed(self._key,
+                                        sorted(set(self.sans or [])))
         return has_cert and same_sans
 
     def set_cert(self, cert, key):
@@ -113,7 +114,7 @@ class CertificateRequest(dict):
         if not rel.endpoint.new_requests:
             clear_flag(rel.endpoint.expand_name('{endpoint_name}.'
                                                 'certs.requested'))
-        data_changed(self._key, self.sans)
+        data_changed(self._key, sorted(set(self.sans or [])))
 
 
 class Certificate(dict):

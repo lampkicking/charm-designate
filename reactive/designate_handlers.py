@@ -18,6 +18,7 @@ import charm.openstack.designate as designate
 import charms.reactive as reactive
 import charms.reactive.relations as relations
 import charmhelpers.core.hookenv as hookenv
+import charmhelpers.core.host as host
 import charmhelpers.contrib.network.ip as ip
 
 from charms_openstack.charm import provide_charm_instance
@@ -68,7 +69,6 @@ def install_packages():
     with provide_charm_instance() as instance:
         instance.install()
     reactive.set_state('installed')
-    reactive.remove_state('amqp.requested-access')
     reactive.remove_state('shared-db.setup')
     reactive.remove_state('base-config.rendered')
     reactive.remove_state('full-config.rendered')
@@ -77,12 +77,10 @@ def install_packages():
 
 
 @reactive.when('amqp.connected')
-@reactive.when_not('amqp.requested-access')
 def setup_amqp_req(amqp):
     """Send request for rabbit access and vhost"""
     amqp.request_access(username='designate',
                         vhost='openstack')
-    reactive.set_state('amqp.requested-access')
 
 
 @reactive.when('shared-db.connected')
@@ -232,3 +230,19 @@ def run_assess_status_on_every_hook():
     """
     with provide_charm_instance() as instance:
         instance.assess_status()
+
+
+@reactive.when('leadership.changed.pool-yaml-hash')
+def remote_pools_updated():
+    hookenv.log(
+        "Pools updated on remote host, restarting pool manager",
+        level=hookenv.DEBUG)
+    host.service_restart('designate-pool-manager')
+
+
+@reactive.when_file_changed(designate.POOLS_YAML)
+def local_pools_updated():
+    hookenv.log(
+        "Pools updated locally, restarting pool manager",
+        level=hookenv.DEBUG)
+    host.service_restart('designate-pool-manager')
