@@ -1,38 +1,30 @@
 "includes":
 - "layer:options"
 - "layer:basic"
-- "layer:openstack"
-- "layer:debug"
 - "interface:tls-certificates"
+- "layer:openstack"
 - "layer:openstack-principle"
 - "interface:mysql-shared"
 - "interface:rabbitmq"
 - "interface:keystone"
 - "interface:hacluster"
 - "interface:openstack-ha"
-- "layer:tls-client"
 - "layer:openstack-api"
 - "layer:leadership"
 - "interface:bind-rndc"
 - "interface:memcache"
 - "interface:designate"
-"exclude": [".travis.yml", "tests", "tox.ini", "test-requirements.txt"]
+"exclude": [".travis.yml", "tests", "tox.ini", "test-requirements.txt", "unit_tests",
+  ".gitignore", ".gitreview", ".zuul.yaml", "README.md", "requirements.txt"]
 "options":
   "basic":
     "use_venv": !!bool "true"
-    "include_system_packages": !!bool "true"
+    "include_system_packages": !!bool "false"
     "packages": []
     "python_packages": []
-  "tls-client":
-    "ca_certificate_path": ""
-    "client_certificate_path": ""
-    "client_key_path": ""
-    "server_key_path": ""
-    "server_certificate_path": ""
-  "openstack-principle": {}
   "openstack-api": {}
   "leadership": {}
-  "debug": {}
+  "openstack-principle": {}
   "openstack": {}
   "designate": {}
 "repo": "https://github.com/openstack/charm-designate"

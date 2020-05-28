@@ -10,13 +10,12 @@
   * Support for PowerDNS and Bind9 out of the box
 "tags":
 - "openstack"
-- "misc"
 - "dns"
 "series":
 - "xenial"
 - "bionic"
-- "cosmic"
 - "disco"
+- "eoan"
 - "trusty"
 "requires":
   "certificates":
@@ -44,4 +43,9 @@
   "public": !!null ""
   "admin": !!null ""
   "internal": !!null ""
+"resources":
+  "policyd-override":
+    "type": "file"
+    "filename": "policyd-override.zip"
+    "description": "The policy.d overrides file"
 "subordinate": !!bool "false"

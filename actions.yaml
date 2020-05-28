@@ -17,5 +17,3 @@
   "description": |
     Perform openstack upgrades. Config option action-managed-upgrade must be
     set to True.
-"debug":
-  "description": "Collect debug data"

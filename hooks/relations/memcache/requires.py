@@ -19,15 +19,18 @@ class MemcachedRequires(RelationBase):
 
     @hook('{requires:memcache}-relation-{joined,changed}')
     def changed(self):
-        self.set_state('{relation_name}.connected')
-        if self.memcache_hosts():
-            self.set_state('{relation_name}.available')
+        conv = self.conversation()
+        conv.set_state('{relation_name}.connected')
+        if conv.get_remote('host') and conv.get_remote('port'):
+            # this unit's conversation has a host and port
+            conv.set_state('{relation_name}.available')
+
 
     @hook('{requires:memcache}-relation-{broken,departed}')
     def broken(self):
-        self.remove_state('{relation_name}.connected')
-        self.remove_state('{relation_name}.available')
-
+        conv = self.conversation()
+        conv.remove_state('{relation_name}.connected')
+        conv.remove_state('{relation_name}.available')
 
     def get_remote_all(self, key, default=None):
         '''Return a list of all values presented by remote units for key'''
@@ -43,4 +46,18 @@ class MemcachedRequires(RelationBase):
         return list(set(values))
 
     def memcache_hosts(self):
+        """Return a list of memcache hosts"""
         return sorted(self.get_remote_all('private-address'))
+
+    def memcaches(self):
+        """Return a list of dicts with: host, port and udp-port"""
+        memcaches = []
+        for conv in self.conversations():
+            memcaches.append({'host': conv.get_remote('host'),
+                              'port': conv.get_remote('port'),
+                              'udp-port': conv.get_remote('udp-port')})
+        return memcaches
+
+    def memcache_hosts_ports(self):
+        """Return a list of tuples (host, port)"""
+        return sorted((m['host'], m['port']) for m in self.memcaches())

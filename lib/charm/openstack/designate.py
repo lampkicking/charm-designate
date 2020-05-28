@@ -22,6 +22,7 @@ import charmhelpers.contrib.openstack.utils as ch_utils
 import charms_openstack.adapters as openstack_adapters
 import charms_openstack.charm as openstack_charm
 import charms_openstack.ip as os_ip
+import charms_openstack.plugins as ch_plugins
 import charmhelpers.core.decorators as decorators
 import charmhelpers.core.hookenv as hookenv
 import charmhelpers.core.host as host
@@ -294,7 +295,9 @@ class DesignateAdapters(openstack_adapters.OpenStackAPIRelationAdapters):
     }
 
 
-class DesignateCharm(openstack_charm.HAOpenStackCharm):
+# note plugin comes first to override the config_changed method as a mixin
+class DesignateCharm(ch_plugins.PolicydOverridePlugin,
+                     openstack_charm.HAOpenStackCharm):
     """Designate charm"""
 
     name = 'designate'
@@ -345,10 +348,15 @@ class DesignateCharm(openstack_charm.HAOpenStackCharm):
             ('6', 'queens'),
             ('7', 'rocky'),
             ('8', 'stein'),
+            ('9', 'train'),
+            ('10', 'ussuri'),
         ]),
     }
 
     group = 'designate'
+
+    # policyd override constants
+    policyd_service_name = 'designate'
 
     def __init__(self, release=None, **kwargs):
         """Custom initialiser for class
@@ -662,9 +670,15 @@ class DesignateCharmRocky(DesignateCharmQueens):
 
     purge_packages = [
         'python-designate',
-        'python-memcache',
         'designate-zone-manager',
         'designate-pool-manager',
     ]
 
     python_version = 3
+
+    def pool_manager_cache_sync(self):
+        # NOTE(jamespage):
+        # As the pool manager is no longer in use don't actually
+        # sync it - just set the  done flag and move on.
+        if not self.pool_manager_cache_sync_done() and hookenv.is_leader():
+            hookenv.leader_set({'pool-manager-cache-sync-done': True})

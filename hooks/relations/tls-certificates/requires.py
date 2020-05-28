@@ -213,6 +213,27 @@ class TlsRequires(Endpoint):
         return certs
 
     @property
+    def application_certs(self):
+        """
+        List containg the application Certificate cert.
+
+        :returns: A list containing one certificate
+        :rtype: [Certificate()]
+        """
+        certs = []
+        json_data = self.all_joined_units.received
+        field = '{}.processed_application_requests'.format(self._unit_name)
+        certs_data = json_data[field] or {}
+        app_cert_data = certs_data.get('app_data')
+        if app_cert_data:
+            certs = [Certificate(
+                'server',
+                'app_data',
+                app_cert_data['cert'],
+                app_cert_data['key'])]
+        return certs
+
+    @property
     def server_certs_map(self):
         """
         Mapping of server [Certificate][] instances by their `common_name`.
@@ -267,7 +288,10 @@ class TlsRequires(Endpoint):
             # for backwards compatibility, first request goes in its own fields
             to_publish_raw['common_name'] = cn
             to_publish_json['sans'] = sans or []
-            to_publish_raw['certificate_name'] = cert_name or str(uuid.uuid4())
+            cert_name = to_publish_raw.get('certificate_name') or cert_name
+            if cert_name is None:
+                cert_name = str(uuid.uuid4())
+            to_publish_raw['certificate_name'] = cert_name
         else:
             # subsequent requests go in the collection
             requests = to_publish_json.get('cert_requests', {})
@@ -302,3 +326,17 @@ class TlsRequires(Endpoint):
         requests = to_publish_json.get('client_cert_requests', {})
         requests[cn] = {'sans': sans}
         to_publish_json['client_cert_requests'] = requests
+
+    def request_application_cert(self, cn, sans):
+        """
+        Request an application certificate and key be generated for the given
+        common name (`cn`) and list of alternative names (`sans` ) of this
+        unit and all peer units. All units will share a single certificates.
+        """
+        if not self.relations:
+            return
+        # assume we'll only be connected to one provider
+        to_publish_json = self.relations[0].to_publish
+        requests = to_publish_json.get('application_cert_requests', {})
+        requests[cn] = {'sans': sans}
+        to_publish_json['application_cert_requests'] = requests

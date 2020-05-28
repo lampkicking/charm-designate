@@ -10,7 +10,8 @@ class MySQLSharedRequires(RelationBase):
     # These remote data fields will be automatically mapped to accessors
     # with a basic documentation string provided.
     auto_accessors = ['access-network', 'db_host',
-                      'ssl_ca', 'ssl_cert', 'ssl_key']
+                      'ssl_ca', 'ssl_cert', 'ssl_key',
+                      'cluster-series-upgrading', 'wait_timeout']
 
     @hook('{requires:mysql-shared}-relation-joined')
     def joined(self):
@@ -18,12 +19,17 @@ class MySQLSharedRequires(RelationBase):
 
     @hook('{requires:mysql-shared}-relation-changed')
     def changed(self):
-        if self.base_data_complete():
-            self.set_state('{relation_name}.available')
-        if self.access_network_data_complete():
-            self.set_state('{relation_name}.available.access_network')
-        if self.ssl_data_complete():
-            self.set_state('{relation_name}.available.ssl')
+        if self.cluster_series_upgrading() == 'True':
+            self.remove_state('{relation_name}.available')
+            self.remove_state('{relation_name}.available.access_network')
+            self.remove_state('{relation_name}.available.ssl')
+        else:
+            if self.base_data_complete() and self.unit_allowed_all_dbs():
+                self.set_state('{relation_name}.available')
+            if self.access_network_data_complete():
+                self.set_state('{relation_name}.available.access_network')
+            if self.ssl_data_complete():
+                self.set_state('{relation_name}.available.ssl')
 
     @hook('{requires:mysql-shared}-relation-{broken,departed}')
     def departed(self):
@@ -144,6 +150,44 @@ class MySQLSharedRequires(RelationBase):
             data['allowed_units'] = self.get_remote('allowed_units')
         if all(data.values()):
             return True
+        return False
+
+    def unit_allowed_db(self, prefix=None):
+        """"
+        Check unit can access requested database.
+
+        :param prefix: Prefix used to distinguish multiple db requests.
+        :type prefix: str
+        :returns: Whether db acl has been setup.
+        :rtype: bool
+        """
+        allowed = False
+        allowed_units = self.allowed_units(prefix=prefix) or ''
+        hookenv.log("Checking {} is in {}".format(
+            hookenv.local_unit(),
+            allowed_units.split()))
+        if allowed_units and hookenv.local_unit() in allowed_units.split():
+            allowed = True
+        hookenv.log("Unit allowed: {}".format(allowed))
+        return allowed
+
+    def unit_allowed_all_dbs(self):
+        """"
+        Check unit can access all requested databases.
+
+        :returns: Whether db acl has been setup for all dbs.
+        :rtype: bool
+        """
+        if self.get_prefixes():
+            _allowed = [self.unit_allowed_db(prefix=p)
+                        for p in self.get_prefixes()]
+        else:
+            _allowed = [self.unit_allowed_db()]
+        hookenv.log("Allowed: {}".format(_allowed))
+        if all(_allowed):
+            hookenv.log("Returning unit_allowed_all_dbs True")
+            return True
+        hookenv.log("Returning unit_allowed_all_dbs False")
         return False
 
     def access_network_data_complete(self):

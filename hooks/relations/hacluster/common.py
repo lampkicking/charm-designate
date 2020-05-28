@@ -53,6 +53,7 @@ class CRM(dict):
         self['clones'] = {}
         self['locations'] = {}
         self['init_services'] = []
+        self['systemd_services'] = []
         super(CRM, self).__init__(*args, **kwargs)
 
     def primitive(self, name, agent, description=None, **kwargs):
@@ -363,6 +364,23 @@ class CRM(dict):
         """
         self['init_services'] = resources
 
+    def systemd_services(self, *resources):
+        """Specifies that the service(s) is a systemd service.
+
+        Services (resources) which are noted as systemd services are
+        disabled, stopped, and left to pacemaker to manage the resource.
+
+        Parameters
+        ----------
+        resources: str or list of str, varargs
+            The resources which should be noted as systemd services.
+
+        Returns
+        -------
+        None
+        """
+        self['systemd_services'] = resources
+
     def ms(self, name, resource, description=None, **kwargs):
         """Create a master/slave resource type.
 
@@ -581,7 +599,9 @@ class InitService(ResourceDescriptor):
             self.service_name.replace('-', '_'),
             self.init_service_name.replace('-', '_'))
         res_type = 'lsb:{}'.format(self.init_service_name)
-        crm.primitive(res_key, res_type, op='monitor interval="5s"')
+        _meta = 'migration-threshold="INFINITY" failure-timeout="5s"'
+        crm.primitive(
+            res_key, res_type, op='monitor interval="5s"', meta=_meta)
         crm.init_services(self.init_service_name)
         if self.clone:
             clone_key = 'cl_{}'.format(res_key)
@@ -631,8 +651,10 @@ class VirtualIP(ResourceDescriptor):
         if self.cidr:
             res_params = '{} cidr_netmask="{}"'.format(res_params, self.cidr)
         # Monitor the VIP
-        _op_monitor = 'monitor depth="0" timeout="20s" interval="10s"'
-        crm.primitive(vip_key, res_type, params=res_params, op=_op_monitor)
+        _op_monitor = 'monitor timeout="20s" interval="10s" depth="0"'
+        _meta = 'migration-threshold="INFINITY" failure-timeout="5s"'
+        crm.primitive(
+            vip_key, res_type, params=res_params, op=_op_monitor, meta=_meta)
 
 
 class DNSEntry(ResourceDescriptor):
@@ -669,3 +691,36 @@ class DNSEntry(ResourceDescriptor):
         if self.ip:
             res_params = '{} ip_address="{}"'.format(res_params, self.ip)
         crm.primitive(res_key, res_type, params=res_params)
+
+
+class SystemdService(ResourceDescriptor):
+    def __init__(self, service_name, systemd_service_name, clone=True):
+        """Class for managing systemd resource
+
+        :param service_name: string - Name of service
+        :param systemd_service_name: string - Name service uses in
+                                              systemd system
+        :param clone: bool - clone service across all units
+        :returns: None
+        """
+        self.service_name = service_name
+        self.systemd_service_name = systemd_service_name
+        self.clone = clone
+
+    def configure_resource(self, crm):
+        """"Configure new systemd system service resource in crm
+
+        :param crm: CRM() instance - Config object for Pacemaker resources
+        :returns: None
+        """
+        res_key = 'res_{}_{}'.format(
+            self.service_name.replace('-', '_'),
+            self.systemd_service_name.replace('-', '_'))
+        res_type = 'systemd:{}'.format(self.systemd_service_name)
+        _meta = 'migration-threshold="INFINITY" failure-timeout="5s"'
+        crm.primitive(
+            res_key, res_type, op='monitor interval="5s"', meta=_meta)
+        crm.systemd_services(self.systemd_service_name)
+        if self.clone:
+            clone_key = 'cl_{}'.format(res_key)
+            crm.clone(clone_key, res_key)

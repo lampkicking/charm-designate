@@ -1,8 +1,6 @@
-# attempt to move the default status handler here:
-import charmhelpers.core.hookenv as hookenv
+import charms.reactive as reactive
 
 import charms_openstack.charm as charm
-import charms.reactive as reactive
 
 
 @reactive.when('amqp.connected',
@@ -53,34 +51,14 @@ def default_setup_endpoint_connection(keystone):
         instance.assess_status()
 
 
-@reactive.when('identity-service.available',
-               'charms.openstack.do-default-identity-service.available')
-def default_setup_endpoint_available(keystone):
-    """When the identity-service interface is available, this default
-    handler switches on the SSL support.
+@reactive.when('cluster.available')
+def default_update_peers(cluster):
+    """Inform peers about this unit's API addresses.
+
+    Set public-address, internal-address and admin-address on the
+    (openstack-ha) peer relation.
     """
     with charm.provide_charm_instance() as instance:
-        instance.configure_ssl(keystone)
-        instance.assess_status()
-
-
-@reactive.when('certificates.available')
-def default_setup_certificates(tls):
-    """When the identity-service interface is available, this default
-    handler switches on the SSL support.
-    """
-    with charm.provide_charm_instance() as instance:
-        for cn, req in instance.get_certificate_requests().items():
-            tls.add_request_server_cert(cn, req['sans'])
-        tls.request_server_certs()
-        instance.assess_status()
-
-
-@reactive.when('certificates.batch.cert.available')
-def default_setup_endpoint_available(tls):
-    """When the identity-service interface is available, this default
-    handler switches on the SSL support.
-    """
-    with charm.provide_charm_instance() as instance:
-        instance.configure_ssl(tls)
-        instance.assess_status()
+        # This function ONLY updates the peers if the data has changed.  Thus
+        # it's okay to call it on every hook invocation.
+        instance.update_peers(cluster)
