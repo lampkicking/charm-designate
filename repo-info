@@ -1,0 +1,6 @@
+commit-sha-1: e5a8ad75966849f38e978d4106e9fdfa593d4d8e
+commit-short: e5a8ad7
+branch: HEAD
+remote: https://opendev.org/openstack/charm-designate
+info-generated: Thu May 21 19:16:07 UTC 2020
+note: This file should exist only in a built or released charm artifact (not in the charm source code tree).

@@ -1,0 +1,31 @@
+"includes":
+- "layer:options"
+- "layer:basic"
+- "interface:tls-certificates"
+- "layer:openstack"
+- "layer:openstack-principle"
+- "interface:mysql-shared"
+- "interface:rabbitmq"
+- "interface:keystone"
+- "interface:hacluster"
+- "interface:openstack-ha"
+- "layer:openstack-api"
+- "layer:leadership"
+- "interface:bind-rndc"
+- "interface:memcache"
+- "interface:designate"
+"exclude": [".travis.yml", "tests", "tox.ini", "test-requirements.txt", "unit_tests",
+  ".gitignore", ".gitreview", ".zuul.yaml", "README.md", "requirements.txt"]
+"options":
+  "basic":
+    "use_venv": !!bool "true"
+    "include_system_packages": !!bool "false"
+    "packages": []
+    "python_packages": []
+  "openstack-api": {}
+  "leadership": {}
+  "openstack-principle": {}
+  "openstack": {}
+  "designate": {}
+"repo": "https://github.com/openstack/charm-designate"
+"is": "designate"
