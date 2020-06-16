@@ -1,0 +1,4 @@
+name: memcache
+summary: Interface for relating to Memcached
+version: 1
+maintainer: "James Beedy <jamesbeedy@gmail.com>"

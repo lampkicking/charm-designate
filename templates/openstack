@@ -1,0 +1,1 @@
+DAEMON_ARGS="--config-file=/etc/designate/designate.conf {{ options.nova_conf_args }} {{ options.neutron_conf_args }}"
